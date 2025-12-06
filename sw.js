@@ -1,4 +1,4 @@
-const CACHE_NAME = '30-seconds-za-v2'; // Bumped version
+const CACHE_NAME = '30-seconds-za-v3';
 const ASSETS = [
   './',
   './index.html',
