@@ -34,7 +34,6 @@
             transform: scale(1.02);
         }
         
-        /* New style for when round ends but card is still visible */
         .game-card.expired {
             filter: grayscale(0.2);
             border-color: #ef4444; /* Red border */
@@ -81,6 +80,15 @@
         .toggle-label {
             transition: background-color 0.3s;
         }
+
+        /* Scrollbar hiding for clean UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white h-screen flex flex-col overflow-hidden select-none">
@@ -91,12 +99,22 @@
             <i class="fa-solid fa-stopwatch text-purple-500 text-2xl"></i>
             <h1 class="font-bold text-xl tracking-wide">30 Seconds <span class="text-xs text-purple-400 block font-normal">SA Edition</span></h1>
         </div>
-        <button id="install-btn" class="hidden bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold py-2 px-3 rounded-full transition">
-            <i class="fa-solid fa-download mr-1"></i> Install
-        </button>
-        <button onclick="toggleSettings()" class="text-gray-400 hover:text-white p-2" aria-label="Open Settings">
-            <i class="fa-solid fa-gear text-xl"></i>
-        </button>
+        
+        <div class="flex items-center gap-1">
+            <button id="install-btn" class="hidden bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold py-2 px-3 rounded-full transition mr-2">
+                <i class="fa-solid fa-download mr-1"></i> Install
+            </button>
+            
+            <!-- History Button -->
+            <button onclick="toggleHistory()" class="text-gray-400 hover:text-white p-2" aria-label="History">
+                <i class="fa-solid fa-clock-rotate-left text-xl"></i>
+            </button>
+            
+            <!-- Settings Button -->
+            <button onclick="toggleSettings()" class="text-gray-400 hover:text-white p-2" aria-label="Settings">
+                <i class="fa-solid fa-gear text-xl"></i>
+            </button>
+        </div>
     </header>
 
     <!-- Main Game Area -->
@@ -204,12 +222,37 @@
         </div>
     </div>
 
+    <!-- History Modal -->
+    <div id="history-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+        <div class="absolute inset-0 bg-black/60 transition-opacity" aria-hidden="true" onclick="toggleHistory()"></div>
+        <div class="absolute bottom-0 w-full md:w-[28rem] md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 bg-gray-900 rounded-t-3xl md:rounded-2xl shadow-xl flex flex-col h-[80vh] md:h-[600px]">
+            
+            <div class="flex justify-between items-center p-6 border-b border-gray-800 bg-gray-800/50 rounded-t-3xl md:rounded-t-2xl">
+                <h3 class="text-xl font-bold"><i class="fa-solid fa-clock-rotate-left mr-2 text-purple-500"></i>History</h3>
+                <button onclick="toggleHistory()" class="text-gray-400 hover:text-white p-2 -mr-2">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <div id="history-list" class="flex-grow overflow-y-auto p-4 space-y-4 no-scrollbar">
+                <!-- History Items Injected Here -->
+                <div class="text-center text-gray-500 mt-10">No games played yet.</div>
+            </div>
+
+            <div class="p-4 border-t border-gray-800 bg-gray-800/30">
+                <button onclick="clearHistory()" class="w-full py-3 bg-red-900/30 hover:bg-red-900/50 text-red-400 font-bold text-sm rounded-lg transition border border-red-900/50">
+                    Clear History
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Audio -->
     <audio id="sound-tick" src="https://assets.mixkit.co/sfx/preview/mixkit-game-ball-tap-2073.mp3"></audio>
     <audio id="sound-end" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-tone-996.mp3"></audio>
 
     <script>
-        // --- CATEGORIZED DATA (Guaranteed Diversity) ---
+        // --- CATEGORIZED DATA ---
         const categories = {
             nostalgia: [
                 "M-Net Open Time", "KTV", "Takalani Sesame", "Dragon Ball Z", "Generations (Old)",
@@ -248,7 +291,7 @@
 
         // --- STATE & DOM ---
         let isPlaying = false;
-        let isReviewing = false; // New state for checking answers
+        let isReviewing = false;
         let timeLeft = 30;
         let timerInterval = null;
         
@@ -263,6 +306,70 @@
         const wordItems = document.querySelectorAll('.word-item');
         const soundTick = document.getElementById('sound-tick');
         const soundEnd = document.getElementById('sound-end');
+        const historyList = document.getElementById('history-list');
+
+        // --- HISTORY FUNCTIONS ---
+        
+        function getHistory() {
+            return JSON.parse(localStorage.getItem('30s_history')) || [];
+        }
+
+        function saveToHistory(words) {
+            const history = getHistory();
+            const newEntry = {
+                id: Date.now(),
+                timestamp: new Date().toISOString(),
+                words: words
+            };
+            // Add to top, limit to last 50
+            history.unshift(newEntry);
+            if(history.length > 50) history.pop();
+            
+            localStorage.setItem('30s_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function clearHistory() {
+            if(confirm("Clear all game history?")) {
+                localStorage.removeItem('30s_history');
+                renderHistory();
+            }
+        }
+
+        function renderHistory() {
+            const history = getHistory();
+            historyList.innerHTML = '';
+
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="text-center text-gray-500 mt-10">No games played yet.</div>';
+                return;
+            }
+
+            history.forEach((game, index) => {
+                const date = new Date(game.timestamp);
+                const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const dateString = date.toLocaleDateString();
+
+                const el = document.createElement('div');
+                el.className = 'bg-gray-800 rounded-xl p-4 border border-gray-700';
+                
+                let wordsHtml = '';
+                game.words.forEach(w => {
+                    wordsHtml += `<span class="inline-block bg-gray-900 rounded px-2 py-1 text-xs m-1 text-gray-300">${w}</span>`;
+                });
+
+                el.innerHTML = `
+                    <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+                        <span class="text-xs font-bold text-purple-400">Round ${history.length - index}</span>
+                        <span class="text-xs text-gray-500">${dateString} ${timeString}</span>
+                    </div>
+                    <div class="flex flex-wrap -m-1">
+                        ${wordsHtml}
+                    </div>
+                `;
+                historyList.appendChild(el);
+            });
+        }
 
         // --- CORE FUNCTIONS ---
 
@@ -271,23 +378,19 @@
             isReviewing = false;
             timeLeft = 30;
             
-            // UI Reset
             startView.classList.add('hidden');
             gameView.classList.remove('hidden');
             gameView.classList.add('flex');
             
-            // Card Reset
             cardContainer.classList.add('active');
             cardContainer.classList.remove('expired');
             cardFooter.textContent = "Dont say the word!";
             cardFooter.parentElement.classList.remove('opacity-0');
 
-            // Button Reset
             actionBtn.textContent = "Next Card / Skip";
             actionBtn.classList.replace('bg-purple-600', 'bg-gray-700');
             actionBtn.classList.remove('bg-blue-600');
 
-            // Timer Reset
             timerDisplay.textContent = "30";
             timerLabel.textContent = "seconds";
             timerBar.style.width = '100%';
@@ -300,40 +403,38 @@
         }
 
         function endRoundLogic() {
-            // STOP EVERYTHING BUT KEEP CARD
             clearInterval(timerInterval);
             isPlaying = false;
             isReviewing = true;
             
-            // Play Sounds/Vibrate
             if (document.getElementById('sound-toggle').checked) {
                 soundEnd.play().catch(e => {});
             }
             if (navigator.vibrate) navigator.vibrate([200, 100, 400]);
 
-            // Visual Updates for "Review Mode"
             timerDisplay.textContent = "TIME'S UP";
             timerLabel.textContent = "";
             timerBar.style.width = '100%';
             timerBar.className = 'timer-bar danger';
             
-            // Mark Card as Expired (Visual Cue)
             cardContainer.classList.remove('active');
             cardContainer.classList.add('expired');
             cardFooter.textContent = "Count your score";
 
-            // Change Button to "Finish"
             actionBtn.textContent = "Finish Round";
             actionBtn.classList.replace('bg-gray-700', 'bg-blue-600');
         }
 
         function resetToHome() {
+            // Save current words to history before resetting
+            const currentWords = Array.from(wordItems).map(el => el.textContent);
+            saveToHistory(currentWords);
+
             isReviewing = false;
             
             startView.classList.remove('hidden');
             gameView.classList.add('hidden');
             gameView.classList.remove('flex');
-            
             cardContainer.classList.remove('expired');
             
             actionBtn.textContent = "Start Round";
@@ -369,20 +470,17 @@
         }
 
         function generateDiverseCard() {
-            // 1. Pick one random word from each category
             const keys = Object.keys(categories);
             let selectedWords = keys.map(key => {
                 const list = categories[key];
                 return list[Math.floor(Math.random() * list.length)];
             });
 
-            // 2. Shuffle to mix order
             for (let i = selectedWords.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [selectedWords[i], selectedWords[j]] = [selectedWords[j], selectedWords[i]];
             }
 
-            // 3. Render
             selectedWords.forEach((word, index) => {
                 wordItems[index].textContent = word;
             });
@@ -392,23 +490,28 @@
 
         actionBtn.addEventListener('click', () => {
             if (!isPlaying && !isReviewing) {
-                // CASE: IDLE -> START
                 startGame();
             } else if (isPlaying) {
-                // CASE: PLAYING -> SKIP
                 if(confirm("Skip this card? (You lose 5s)")) {
                    generateDiverseCard();
                    timeLeft = Math.max(0, timeLeft - 5);
                    updateTimer(); 
                 }
             } else if (isReviewing) {
-                // CASE: REVIEWING -> HOME
                 resetToHome();
             }
         });
 
         function toggleSettings() {
             document.getElementById('settings-modal').classList.toggle('hidden');
+        }
+
+        function toggleHistory() {
+            const modal = document.getElementById('history-modal');
+            modal.classList.toggle('hidden');
+            if(!modal.classList.contains('hidden')) {
+                renderHistory();
+            }
         }
 
         // --- PWA INSTALLATION ---
@@ -439,6 +542,10 @@
                     .catch(err => console.log('SW Error', err));
             });
         }
+
+        // Init History on load
+        renderHistory();
+
     </script>
 </body>
 </html>
