@@ -33,6 +33,12 @@
         .game-card.active {
             transform: scale(1.02);
         }
+        
+        /* New style for when round ends but card is still visible */
+        .game-card.expired {
+            filter: grayscale(0.2);
+            border-color: #ef4444; /* Red border */
+        }
 
         .timer-container {
             width: 100%;
@@ -67,9 +73,9 @@
             background-color: #a855f7; /* purple-500 */
         }
         .toggle-checkbox {
-            right: 44px; /* Width of the container - width of the knob - border */
+            right: 44px;
             z-index: 1;
-            border-color: #4b5563; /* gray-600 */
+            border-color: #4b5563;
             transition: all 0.3s;
         }
         .toggle-label {
@@ -109,7 +115,7 @@
         </div>
 
         <!-- The Card -->
-        <div id="card-container" class="game-card w-full aspect-[3/4] rounded-2xl p-6 flex flex-col justify-between items-center relative mb-6 border-4 border-white/20">
+        <div id="card-container" class="game-card w-full aspect-[3/4] rounded-2xl p-6 flex flex-col justify-between items-center relative mb-6 border-4 border-white/20 transition-all duration-300">
             
             <!-- Start View -->
             <div id="start-view" class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-gray-900">
@@ -123,7 +129,7 @@
             <div id="game-view" class="w-full h-full flex flex-col hidden text-gray-900">
                 <div class="w-full flex justify-between items-start mb-2 opacity-60">
                     <span class="text-xs font-bold tracking-widest uppercase">South Africa</span>
-                    <i class="fa-solid fa-flag"></i>
+                    <i id="card-icon" class="fa-solid fa-flag"></i>
                 </div>
 
                 <div class="flex-grow flex flex-col justify-center gap-5">
@@ -135,7 +141,7 @@
                 </div>
 
                 <div class="mt-auto pt-4 text-center">
-                   <div class="inline-block bg-black/10 rounded px-2 py-1 text-xs font-bold uppercase tracking-wider">
+                   <div id="card-footer-text" class="inline-block bg-black/10 rounded px-2 py-1 text-xs font-bold uppercase tracking-wider">
                        Dont say the word!
                    </div>
                 </div>
@@ -146,7 +152,7 @@
         <div class="w-full mb-6">
             <div class="flex justify-between text-2xl font-mono font-bold mb-1">
                 <span id="timer-display" class="text-white">30</span>
-                <span class="text-gray-500 text-sm self-end pb-1">seconds</span>
+                <span id="timer-label" class="text-gray-500 text-sm self-end pb-1">seconds</span>
             </div>
             <div class="timer-container">
                 <div id="timer-bar" class="timer-bar bg-green-500"></div>
@@ -165,25 +171,17 @@
         <p>Made for SA | Does not use data</p>
     </footer>
 
-    <!-- New Settings Modal -->
+    <!-- Settings Modal -->
     <div id="settings-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
-        <!-- Backdrop -->
         <div class="absolute inset-0 bg-black/60 transition-opacity" aria-hidden="true" onclick="toggleSettings()"></div>
-        
-        <!-- Modal Content - Bottom Sheet on Mobile, Centered on Desktop -->
         <div class="absolute bottom-0 w-full md:w-[28rem] md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 bg-gray-800 rounded-t-3xl md:rounded-2xl shadow-xl transition-transform transform translate-y-0">
-            
-            <!-- Header -->
             <div class="flex justify-between items-center p-6 border-b border-gray-700">
                 <h3 class="text-xl font-bold">Settings</h3>
                 <button onclick="toggleSettings()" class="text-gray-400 hover:text-white p-2 -mr-2" aria-label="Close">
                     <i class="fa-solid fa-xmark text-xl"></i>
                 </button>
             </div>
-            
-            <!-- Body -->
             <div class="p-6 space-y-8">
-                <!-- Audio Section -->
                 <div>
                     <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Audio</h4>
                     <div class="flex justify-between items-center">
@@ -191,31 +189,13 @@
                             <span class="font-medium">Sound Effects</span>
                             <span class="text-xs text-gray-400">Play ticking and alarm sounds</span>
                         </div>
-                        <!-- Custom Toggle Switch -->
                         <div class="relative inline-block w-14 h-8 align-middle select-none">
                             <input type="checkbox" id="sound-toggle" checked class="toggle-checkbox absolute block w-7 h-7 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
                             <label for="sound-toggle" class="toggle-label block overflow-hidden h-8 rounded-full bg-gray-600 cursor-pointer"></label>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Coming Soon Section (Placeholder for future features) -->
-                <div class="opacity-50">
-                     <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Gameplay</h4>
-                     <div class="flex justify-between items-center">
-                        <div class="flex flex-col">
-                            <span class="font-medium">Hard Mode</span>
-                            <span class="text-xs text-gray-400">Coming soon...</span>
-                        </div>
-                        <div class="relative inline-block w-14 h-8 align-middle select-none pointer-events-none">
-                            <input type="checkbox" disabled class="toggle-checkbox absolute block w-7 h-7 rounded-full bg-gray-300 border-4 appearance-none"/>
-                            <label class="toggle-label block overflow-hidden h-8 rounded-full bg-gray-700"></label>
-                        </div>
-                    </div>
-                </div>
             </div>
-
-            <!-- Footer / CTA -->
             <div class="p-6 border-t border-gray-700">
                 <button onclick="toggleSettings()" class="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold text-lg rounded-xl transition tap-highlight-transparent">
                     Apply Changes
@@ -229,40 +209,46 @@
     <audio id="sound-end" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-tone-996.mp3"></audio>
 
     <script>
-        // --- DATA: 25-30yo SOUTH AFRICANS (General) ---
-        const wordData = [
-            // SA ICONS / BRANDS
-            ["Checkers Sixty60", "Nando's", "Mr D Food", "Spar Tops", "Outsurance"],
-            ["Castle Lite", "Black Label", "Klipdrift", "Amarula", "Oros"],
-            ["Woolworths Water", "Simba Chips", "Chappies", "Grandpa Powder", "Zambuk"],
-            ["FNB eBucks", "Capitec", "Discovery Vitality", "Takealot", "Superbalist"],
-            
-            // 90s/00s NOSTALGIA (The sweet spot for 25-30s)
-            ["M-Net Open Time", "KTV", "Takalani Sesame", "Dragon Ball Z (SABC2)", "Generations (The old one)"],
-            ["BBM (Blackberry)", "Nokia 3310", "Please Call Me", "MXit", "MSN Messenger"],
-            ["Pokemon Tazos", "Beyblades", "Tamagotchi", "YoTV", "Craz-e"],
-            ["Spur Birthday Song", "Wicks Bubblegum", "Chappies Did You Know", "Dub (The alien)", "Fizzer"],
-            
-            // SA CULTURE / DAILY LIFE
-            ["Load Shedding", "EskomSePush", "Potholes", "Car Guard", "Hadeda"],
-            ["Braai", "Potjiekos", "Biltong", "Droewors", "Melktert"],
-            ["Taxi Gaartjie", "Blue Crane", "Springbok", "Protea", "Table Mountain"],
-            ["Home Affairs", "SABC License", "SASSA", "Traffic Circle", "Robot (Light)"],
-            
-            // MODERN SA / PEOPLE
-            ["Siya Kolisi", "Rassie Erasmus", "Trevor Noah", "Black Coffee", "Tyla (Water)"],
-            ["Uncle Waffles", "Cyril Ramaphosa", "Elon Musk", "Dricus du Plessis", "Caster Semenya"],
-            ["Amapiano", "Gqom", "Sokkie", "Afrikaans", "Zulu"],
-            ["Air Fryer", "Solar Panels", "Inverter", "Generator", "JoJo Tank"],
-            
-            // SLANG / PHRASES
-            ["Lekker", "Eish", "Now Now", "Just Now", "Shame"],
-            ["Yoh", "Awe", "Jol", "Bakkie", "Tekkies"],
-            ["Circle K", "Garage Pie", "Roadhouse", "Matric Dance", "Plett Rage"]
-        ];
+        // --- CATEGORIZED DATA (Guaranteed Diversity) ---
+        const categories = {
+            nostalgia: [
+                "M-Net Open Time", "KTV", "Takalani Sesame", "Dragon Ball Z", "Generations (Old)",
+                "BBM (Blackberry)", "Nokia 3310", "Please Call Me", "MXit", "MSN Messenger",
+                "Pokemon Tazos", "Beyblades", "Tamagotchi", "YoTV", "Craz-e",
+                "Spur Birthday Song", "Wicks Bubblegum", "Chappies Did You Know", "Dub (The alien)", "Fizzer",
+                "Simunye Grooves", "Ouma Rusks", "Teletext", "Lolly Lounge"
+            ],
+            brands: [
+                "Checkers Sixty60", "Nando's", "Mr D Food", "Spar Tops", "Outsurance",
+                "Castle Lite", "Black Label", "Klipdrift", "Amarula", "Oros",
+                "Woolworths Water", "Simba Chips", "Chappies", "Grandpa Powder", "Zambuk",
+                "FNB eBucks", "Capitec", "Discovery Vitality", "Takealot", "Superbalist",
+                "Shein", "Uber Eats", "Prime Drink", "Investec", "Standard Bank"
+            ],
+            culture: [
+                "Load Shedding", "EskomSePush", "Potholes", "Car Guard", "Hadeda",
+                "Braai", "Potjiekos", "Biltong", "Droewors", "Melktert",
+                "Taxi Gaartjie", "Lekker", "Eish", "Now Now", "Just Now",
+                "Shame", "Yoh", "Awe", "Jol", "Bakkie", "Tekkies",
+                "Bunny Chow", "Gatsby", "Koesister", "Garage Pie", "Roadhouse", "Pap & Wors"
+            ],
+            people: [
+                "Siya Kolisi", "Rassie Erasmus", "Trevor Noah", "Black Coffee", "Tyla (Water)",
+                "Uncle Waffles", "Cyril Ramaphosa", "Elon Musk", "Dricus du Plessis", "Caster Semenya",
+                "Nelson Mandela", "Desmond Tutu", "Charlize Theron", "AB de Villiers", "Sho Madjozi",
+                "The Kiffness", "Leon Schuster", "Brenda Fassie", "Hugh Masekela", "Wayde van Niekerk"
+            ],
+            places: [
+                "Table Mountain", "Kruger National Park", "Soweto", "Drakensberg", "Sun City",
+                "Gautrain", "The N1 Highway", "Robben Island", "V&A Waterfront", "Gold Reef City",
+                "uShaka Marine World", "Hole in the Wall", "Chapman's Peak", "District Six",
+                "Home Affairs", "SABC License", "SASSA", "Traffic Circle", "Robot (Light)"
+            ]
+        };
 
-        // --- GAME LOGIC ---
+        // --- STATE & DOM ---
         let isPlaying = false;
+        let isReviewing = false; // New state for checking answers
         let timeLeft = 30;
         let timerInterval = null;
         
@@ -270,43 +256,91 @@
         const gameView = document.getElementById('game-view');
         const actionBtn = document.getElementById('action-btn');
         const timerDisplay = document.getElementById('timer-display');
+        const timerLabel = document.getElementById('timer-label');
         const timerBar = document.getElementById('timer-bar');
         const cardContainer = document.getElementById('card-container');
+        const cardFooter = document.getElementById('card-footer-text');
         const wordItems = document.querySelectorAll('.word-item');
         const soundTick = document.getElementById('sound-tick');
         const soundEnd = document.getElementById('sound-end');
 
+        // --- CORE FUNCTIONS ---
+
         function startGame() {
             isPlaying = true;
+            isReviewing = false;
             timeLeft = 30;
             
+            // UI Reset
             startView.classList.add('hidden');
             gameView.classList.remove('hidden');
             gameView.classList.add('flex');
-            actionBtn.textContent = "Next Card";
-            actionBtn.classList.replace('bg-purple-600', 'bg-gray-700');
-            cardContainer.classList.add('active');
             
+            // Card Reset
+            cardContainer.classList.add('active');
+            cardContainer.classList.remove('expired');
+            cardFooter.textContent = "Dont say the word!";
+            cardFooter.parentElement.classList.remove('opacity-0');
+
+            // Button Reset
+            actionBtn.textContent = "Next Card / Skip";
+            actionBtn.classList.replace('bg-purple-600', 'bg-gray-700');
+            actionBtn.classList.remove('bg-blue-600');
+
+            // Timer Reset
+            timerDisplay.textContent = "30";
+            timerLabel.textContent = "seconds";
             timerBar.style.width = '100%';
             timerBar.className = 'timer-bar bg-green-500';
 
-            shuffleAndSetWords();
+            generateDiverseCard();
 
             clearInterval(timerInterval);
             timerInterval = setInterval(updateTimer, 1000);
         }
 
-        function stopGame() {
-            isPlaying = false;
+        function endRoundLogic() {
+            // STOP EVERYTHING BUT KEEP CARD
             clearInterval(timerInterval);
+            isPlaying = false;
+            isReviewing = true;
+            
+            // Play Sounds/Vibrate
+            if (document.getElementById('sound-toggle').checked) {
+                soundEnd.play().catch(e => {});
+            }
+            if (navigator.vibrate) navigator.vibrate([200, 100, 400]);
+
+            // Visual Updates for "Review Mode"
+            timerDisplay.textContent = "TIME'S UP";
+            timerLabel.textContent = "";
+            timerBar.style.width = '100%';
+            timerBar.className = 'timer-bar danger';
+            
+            // Mark Card as Expired (Visual Cue)
+            cardContainer.classList.remove('active');
+            cardContainer.classList.add('expired');
+            cardFooter.textContent = "Count your score";
+
+            // Change Button to "Finish"
+            actionBtn.textContent = "Finish Round";
+            actionBtn.classList.replace('bg-gray-700', 'bg-blue-600');
+        }
+
+        function resetToHome() {
+            isReviewing = false;
             
             startView.classList.remove('hidden');
             gameView.classList.add('hidden');
             gameView.classList.remove('flex');
+            
+            cardContainer.classList.remove('expired');
+            
             actionBtn.textContent = "Start Round";
-            actionBtn.classList.replace('bg-gray-700', 'bg-purple-600');
-            cardContainer.classList.remove('active');
+            actionBtn.classList.replace('bg-blue-600', 'bg-purple-600');
+            
             timerDisplay.textContent = "30";
+            timerLabel.textContent = "seconds";
             timerBar.style.width = '100%';
             timerBar.className = 'timer-bar bg-green-500';
         }
@@ -330,37 +364,46 @@
             }
 
             if (timeLeft <= 0) {
-                endRound();
+                endRoundLogic();
             }
         }
 
-        function endRound() {
-            clearInterval(timerInterval);
-            if (document.getElementById('sound-toggle').checked) {
-                soundEnd.play().catch(e => {});
-            }
-            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-            alert("Time's Up!");
-            stopGame();
-        }
+        function generateDiverseCard() {
+            // 1. Pick one random word from each category
+            const keys = Object.keys(categories);
+            let selectedWords = keys.map(key => {
+                const list = categories[key];
+                return list[Math.floor(Math.random() * list.length)];
+            });
 
-        function shuffleAndSetWords() {
-            const randomIndex = Math.floor(Math.random() * wordData.length);
-            const words = wordData[randomIndex];
-            words.forEach((word, index) => {
+            // 2. Shuffle to mix order
+            for (let i = selectedWords.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [selectedWords[i], selectedWords[j]] = [selectedWords[j], selectedWords[i]];
+            }
+
+            // 3. Render
+            selectedWords.forEach((word, index) => {
                 wordItems[index].textContent = word;
             });
         }
 
+        // --- EVENT LISTENERS ---
+
         actionBtn.addEventListener('click', () => {
-            if (!isPlaying) {
+            if (!isPlaying && !isReviewing) {
+                // CASE: IDLE -> START
                 startGame();
-            } else {
+            } else if (isPlaying) {
+                // CASE: PLAYING -> SKIP
                 if(confirm("Skip this card? (You lose 5s)")) {
-                   shuffleAndSetWords();
+                   generateDiverseCard();
                    timeLeft = Math.max(0, timeLeft - 5);
-                   updateTimer(); // Visual update immediately
+                   updateTimer(); 
                 }
+            } else if (isReviewing) {
+                // CASE: REVIEWING -> HOME
+                resetToHome();
             }
         });
 
