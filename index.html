@@ -3,548 +3,370 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>30 Seconds: SA Edition</title>
-    
-    <!-- PWA Linkages -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#7c3aed">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="icon" type="image/svg+xml" href="icon.svg">
-
-    <!-- Tailwind CSS -->
+    <title>30 Seconds: Ultimate Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Permanent+Marker&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            touch-action: manipulation;
-        }
-        
-        .game-card {
-            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        
-        .game-card.active {
-            transform: scale(1.02);
-        }
-        
-        .game-card.expired {
-            filter: grayscale(0.2);
-            border-color: #ef4444; /* Red border */
-        }
-
-        .timer-container {
-            width: 100%;
-            height: 8px;
-            background-color: #374151;
-            border-radius: 9999px;
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: white;
             overflow: hidden;
-        }
-        
-        .timer-bar {
-            height: 100%;
-            background-color: #10b981;
-            width: 100%;
-            transition: width 1s linear, background-color 1s linear;
-        }
-
-        .timer-bar.warning { background-color: #f59e0b; }
-        .timer-bar.danger { background-color: #ef4444; }
-
-        #install-btn.hidden { display: none; }
-        
-        .tap-highlight-transparent {
+            touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
         }
-
-        /* Toggle Switch Styling */
-        .toggle-checkbox:checked {
-            right: 0;
-            border-color: #a855f7; /* purple-500 */
-        }
-        .toggle-checkbox:checked + .toggle-label {
-            background-color: #a855f7; /* purple-500 */
-        }
-        .toggle-checkbox {
-            right: 44px;
-            z-index: 1;
-            border-color: #4b5563;
-            transition: all 0.3s;
-        }
-        .toggle-label {
-            transition: background-color 0.3s;
-        }
-
-        /* Scrollbar hiding for clean UI */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        .marker-font { font-family: 'Permanent Marker', cursive; }
+        .card-shadow { box-shadow: 0 0 40px rgba(250, 204, 21, 0.15); }
+        .blur-content { filter: blur(8px); user-select: none; }
+        .btn-press:active { transform: scale(0.95); }
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
-<body class="bg-gray-900 text-white h-screen flex flex-col overflow-hidden select-none">
+<body class="h-screen flex flex-col items-center justify-between p-4 bg-gradient-to-b from-gray-900 to-black">
 
-    <!-- Header -->
-    <header class="flex justify-between items-center p-4 bg-gray-800 border-b border-gray-700 z-10">
-        <div class="flex items-center gap-2">
-            <i class="fa-solid fa-stopwatch text-purple-500 text-2xl"></i>
-            <h1 class="font-bold text-xl tracking-wide">30 Seconds <span class="text-xs text-purple-400 block font-normal">SA Edition</span></h1>
+    <!-- HEADER -->
+    <div class="w-full flex justify-between items-center max-w-md mt-2">
+        <div>
+            <h1 class="text-3xl text-yellow-400 marker-font leading-none">30 SECONDS</h1>
+            <p id="deck-count" class="text-[10px] text-gray-500 font-bold tracking-widest">LOADING DECK...</p>
         </div>
-        
-        <div class="flex items-center gap-1">
-            <button id="install-btn" class="hidden bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold py-2 px-3 rounded-full transition mr-2">
-                <i class="fa-solid fa-download mr-1"></i> Install
-            </button>
-            
-            <!-- History Button -->
-            <button onclick="toggleHistory()" class="text-gray-400 hover:text-white p-2" aria-label="History">
-                <i class="fa-solid fa-clock-rotate-left text-xl"></i>
-            </button>
-            
-            <!-- Settings Button -->
-            <button onclick="toggleSettings()" class="text-gray-400 hover:text-white p-2" aria-label="Settings">
-                <i class="fa-solid fa-gear text-xl"></i>
-            </button>
-        </div>
-    </header>
-
-    <!-- Main Game Area -->
-    <main class="flex-grow flex flex-col items-center justify-center p-4 relative w-full max-w-md mx-auto">
-        
-        <!-- Score / Team Display -->
-        <div class="w-full flex justify-between mb-4 px-2 text-sm font-semibold text-gray-400">
-            <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-blue-500"></span>
-                <span>Team A</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <span>Team B</span>
-                <span class="w-3 h-3 rounded-full bg-red-500"></span>
-            </div>
-        </div>
-
-        <!-- The Card -->
-        <div id="card-container" class="game-card w-full aspect-[3/4] rounded-2xl p-6 flex flex-col justify-between items-center relative mb-6 border-4 border-white/20 transition-all duration-300">
-            
-            <!-- Start View -->
-            <div id="start-view" class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-gray-900">
-                <i class="fa-solid fa-earth-africa text-5xl mb-4 opacity-50"></i>
-                <h2 class="text-3xl font-black uppercase mb-2">Ready?</h2>
-                <p class="font-semibold opacity-75">Local is Lekker.</p>
-                <p class="text-sm opacity-60 mt-2">Tap below to start.</p>
-            </div>
-
-            <!-- Game View -->
-            <div id="game-view" class="w-full h-full flex flex-col hidden text-gray-900">
-                <div class="w-full flex justify-between items-start mb-2 opacity-60">
-                    <span class="text-xs font-bold tracking-widest uppercase">South Africa</span>
-                    <i id="card-icon" class="fa-solid fa-flag"></i>
-                </div>
-
-                <div class="flex-grow flex flex-col justify-center gap-5">
-                    <div class="word-item font-bold text-2xl md:text-3xl text-center border-b-2 border-black/10 pb-1">Loading...</div>
-                    <div class="word-item font-bold text-2xl md:text-3xl text-center border-b-2 border-black/10 pb-1">Loading...</div>
-                    <div class="word-item font-bold text-2xl md:text-3xl text-center border-b-2 border-black/10 pb-1">Loading...</div>
-                    <div class="word-item font-bold text-2xl md:text-3xl text-center border-b-2 border-black/10 pb-1">Loading...</div>
-                    <div class="word-item font-bold text-2xl md:text-3xl text-center border-b-2 border-black/10 pb-1">Loading...</div>
-                </div>
-
-                <div class="mt-auto pt-4 text-center">
-                   <div id="card-footer-text" class="inline-block bg-black/10 rounded px-2 py-1 text-xs font-bold uppercase tracking-wider">
-                       Dont say the word!
-                   </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Timer -->
-        <div class="w-full mb-6">
-            <div class="flex justify-between text-2xl font-mono font-bold mb-1">
-                <span id="timer-display" class="text-white">30</span>
-                <span id="timer-label" class="text-gray-500 text-sm self-end pb-1">seconds</span>
-            </div>
-            <div class="timer-container">
-                <div id="timer-bar" class="timer-bar bg-green-500"></div>
-            </div>
-        </div>
-
-        <!-- Controls -->
-        <button id="action-btn" class="w-full py-4 bg-purple-600 active:bg-purple-700 text-white font-bold text-xl rounded-xl shadow-lg shadow-purple-900/50 transition transform active:scale-95 tap-highlight-transparent">
-            Start Round
+        <button onclick="skipCard()" class="bg-gray-800 p-3 rounded-full border border-gray-600 active:bg-gray-700 btn-press">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
         </button>
+    </div>
 
-    </main>
+    <!-- SCOREBOARD -->
+    <div class="w-full max-w-md bg-gray-800/50 rounded-xl p-3 border border-gray-700 flex justify-between mt-4">
+        <div class="flex flex-col items-center w-1/2 border-r border-gray-700 pr-2">
+            <span class="text-[10px] text-gray-400 uppercase font-bold mb-1">TEAM 1</span>
+            <div class="flex items-center justify-between w-full bg-gray-900 rounded p-1">
+                <button onclick="updateScore(0, -1)" class="w-8 h-8 bg-gray-800 rounded text-red-400 font-bold hover:bg-red-900/30">-</button>
+                <span id="score-0" class="text-2xl font-bold text-yellow-400">0</span>
+                <button onclick="updateScore(0, 1)" class="w-8 h-8 bg-gray-800 rounded text-green-400 font-bold hover:bg-green-900/30">+</button>
+            </div>
+        </div>
+        <div class="flex flex-col items-center w-1/2 pl-2">
+            <span class="text-[10px] text-gray-400 uppercase font-bold mb-1">TEAM 2</span>
+            <div class="flex items-center justify-between w-full bg-gray-900 rounded p-1">
+                <button onclick="updateScore(1, -1)" class="w-8 h-8 bg-gray-800 rounded text-red-400 font-bold hover:bg-red-900/30">-</button>
+                <span id="score-1" class="text-2xl font-bold text-yellow-400">0</span>
+                <button onclick="updateScore(1, 1)" class="w-8 h-8 bg-gray-800 rounded text-green-400 font-bold hover:bg-green-900/30">+</button>
+            </div>
+        </div>
+    </div>
 
-    <!-- Footer -->
-    <footer class="text-center p-4 text-gray-500 text-xs">
-        <p>Made for SA | Does not use data</p>
-    </footer>
+    <!-- MAIN GAME AREA -->
+    <div class="flex-1 w-full max-w-md flex flex-col items-center justify-center relative">
+        <div id="timer-display" class="text-8xl marker-font text-white mb-6 drop-shadow-lg transition-colors duration-300">30</div>
 
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
-        <div class="absolute inset-0 bg-black/60 transition-opacity" aria-hidden="true" onclick="toggleSettings()"></div>
-        <div class="absolute bottom-0 w-full md:w-[28rem] md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 bg-gray-800 rounded-t-3xl md:rounded-2xl shadow-xl transition-transform transform translate-y-0">
-            <div class="flex justify-between items-center p-6 border-b border-gray-700">
-                <h3 class="text-xl font-bold">Settings</h3>
-                <button onclick="toggleSettings()" class="text-gray-400 hover:text-white p-2 -mr-2" aria-label="Close">
-                    <i class="fa-solid fa-xmark text-xl"></i>
+        <div class="relative w-full aspect-[4/5] bg-white rounded-2xl border-8 border-yellow-400 p-6 flex flex-col card-shadow max-h-[450px]">
+            <div class="absolute top-12 left-0 w-full h-2 bg-black"></div>
+            <div class="flex justify-between items-start mb-6">
+                <span class="bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded">ULTIMATE</span>
+                <div class="w-10 h-10 rounded-full bg-black flex items-center justify-center text-yellow-400 font-bold text-xl border-2 border-yellow-400 z-10">30</div>
+            </div>
+
+            <div id="word-container" class="flex-1 flex flex-col justify-center space-y-4 blur-content transition-all duration-300">
+                <!-- Words injected here -->
+            </div>
+
+            <div class="w-full flex justify-center mt-4">
+                <div class="w-16 h-1 bg-yellow-400 rounded-full"></div>
+            </div>
+
+            <!-- OVERLAYS -->
+            <div id="start-overlay" class="absolute inset-0 bg-black/80 z-20 rounded-lg flex items-center justify-center fade-in">
+                <button onclick="startGame()" class="bg-yellow-400 text-black text-2xl font-black py-4 px-10 rounded-full hover:scale-105 transition shadow-[0_0_20px_rgba(250,204,21,0.5)] btn-press border-2 border-white">
+                    START
                 </button>
             </div>
-            <div class="p-6 space-y-8">
-                <div>
-                    <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Audio</h4>
-                    <div class="flex justify-between items-center">
-                        <div class="flex flex-col">
-                            <span class="font-medium">Sound Effects</span>
-                            <span class="text-xs text-gray-400">Play ticking and alarm sounds</span>
-                        </div>
-                        <div class="relative inline-block w-14 h-8 align-middle select-none">
-                            <input type="checkbox" id="sound-toggle" checked class="toggle-checkbox absolute block w-7 h-7 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
-                            <label for="sound-toggle" class="toggle-label block overflow-hidden h-8 rounded-full bg-gray-600 cursor-pointer"></label>
-                        </div>
-                    </div>
-                </div>
+
+            <div id="times-up-overlay" class="hidden absolute inset-0 bg-red-900/90 z-20 rounded-lg flex flex-col items-center justify-center fade-in">
+                <h2 class="text-5xl marker-font text-white mb-4 text-center">TIME'S<br>UP!</h2>
+                <button onclick="skipCard()" class="bg-white text-red-900 font-bold py-3 px-8 rounded-full shadow-lg btn-press">
+                    NEXT CARD
+                </button>
             </div>
-            <div class="p-6 border-t border-gray-700">
-                <button onclick="toggleSettings()" class="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold text-lg rounded-xl transition tap-highlight-transparent">
-                    Apply Changes
+            
+             <div id="game-over-overlay" class="hidden absolute inset-0 bg-gray-900/95 z-30 rounded-lg flex flex-col items-center justify-center fade-in">
+                <h2 class="text-3xl marker-font text-yellow-400 mb-4 text-center">DECK EMPTY!</h2>
+                <button onclick="resetDeck()" class="bg-yellow-400 text-black font-bold py-3 px-8 rounded-full shadow-lg btn-press">
+                    RESHUFFLE
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- History Modal -->
-    <div id="history-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
-        <div class="absolute inset-0 bg-black/60 transition-opacity" aria-hidden="true" onclick="toggleHistory()"></div>
-        <div class="absolute bottom-0 w-full md:w-[28rem] md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 bg-gray-900 rounded-t-3xl md:rounded-2xl shadow-xl flex flex-col h-[80vh] md:h-[600px]">
-            
-            <div class="flex justify-between items-center p-6 border-b border-gray-800 bg-gray-800/50 rounded-t-3xl md:rounded-t-2xl">
-                <h3 class="text-xl font-bold"><i class="fa-solid fa-clock-rotate-left mr-2 text-purple-500"></i>History</h3>
-                <button onclick="toggleHistory()" class="text-gray-400 hover:text-white p-2 -mr-2">
-                    <i class="fa-solid fa-xmark text-xl"></i>
-                </button>
-            </div>
-            
-            <div id="history-list" class="flex-grow overflow-y-auto p-4 space-y-4 no-scrollbar">
-                <!-- History Items Injected Here -->
-                <div class="text-center text-gray-500 mt-10">No games played yet.</div>
-            </div>
-
-            <div class="p-4 border-t border-gray-800 bg-gray-800/30">
-                <button onclick="clearHistory()" class="w-full py-3 bg-red-900/30 hover:bg-red-900/50 text-red-400 font-bold text-sm rounded-lg transition border border-red-900/50">
-                    Clear History
-                </button>
-            </div>
-        </div>
+    <div class="text-center text-gray-500 text-xs mt-4 pb-2">
+        <p>Describe the 5 words. Don't say the actual words!</p>
     </div>
-
-    <!-- Audio -->
-    <audio id="sound-tick" src="https://assets.mixkit.co/sfx/preview/mixkit-game-ball-tap-2073.mp3"></audio>
-    <audio id="sound-end" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-tone-996.mp3"></audio>
 
     <script>
-        // --- CATEGORIZED DATA ---
-        const categories = {
-            nostalgia: [
-                "M-Net Open Time", "KTV", "Takalani Sesame", "Dragon Ball Z", "Generations (Old)",
-                "BBM (Blackberry)", "Nokia 3310", "Please Call Me", "MXit", "MSN Messenger",
-                "Pokemon Tazos", "Beyblades", "Tamagotchi", "YoTV", "Craz-e",
-                "Spur Birthday Song", "Wicks Bubblegum", "Chappies Did You Know", "Dub (The alien)", "Fizzer",
-                "Simunye Grooves", "Ouma Rusks", "Teletext", "Lolly Lounge"
-            ],
-            brands: [
-                "Checkers Sixty60", "Nando's", "Mr D Food", "Spar Tops", "Outsurance",
-                "Castle Lite", "Black Label", "Klipdrift", "Amarula", "Oros",
-                "Woolworths Water", "Simba Chips", "Chappies", "Grandpa Powder", "Zambuk",
-                "FNB eBucks", "Capitec", "Discovery Vitality", "Takealot", "Superbalist",
-                "Shein", "Uber Eats", "Prime Drink", "Investec", "Standard Bank"
-            ],
-            culture: [
-                "Load Shedding", "EskomSePush", "Potholes", "Car Guard", "Hadeda",
-                "Braai", "Potjiekos", "Biltong", "Droewors", "Melktert",
-                "Taxi Gaartjie", "Lekker", "Eish", "Now Now", "Just Now",
-                "Shame", "Yoh", "Awe", "Jol", "Bakkie", "Tekkies",
-                "Bunny Chow", "Gatsby", "Koesister", "Garage Pie", "Roadhouse", "Pap & Wors"
-            ],
-            people: [
-                "Siya Kolisi", "Rassie Erasmus", "Trevor Noah", "Black Coffee", "Tyla (Water)",
-                "Uncle Waffles", "Cyril Ramaphosa", "Elon Musk", "Dricus du Plessis", "Caster Semenya",
-                "Nelson Mandela", "Desmond Tutu", "Charlize Theron", "AB de Villiers", "Sho Madjozi",
-                "The Kiffness", "Leon Schuster", "Brenda Fassie", "Hugh Masekela", "Wayde van Niekerk"
-            ],
-            places: [
-                "Table Mountain", "Kruger National Park", "Soweto", "Drakensberg", "Sun City",
-                "Gautrain", "The N1 Highway", "Robben Island", "V&A Waterfront", "Gold Reef City",
-                "uShaka Marine World", "Hole in the Wall", "Chapman's Peak", "District Six",
-                "Home Affairs", "SABC License", "SASSA", "Traffic Circle", "Robot (Light)"
-            ]
-        };
+        // --- EXPANDED DATASET ---
+        const SA_LIST = [
+            "Loadshedding", "EskomSePush", "Cyril Ramaphosa", "Checkers Sixty60", "Woolies Water",
+            "Amarula", "Springboks", "Siya Kolisi", "Rassie Erasmus", "Table Mountain",
+            "Kruger Park", "Hadeda", "Parktown Prawn", "Blue Light Brigade", "Taxi Hand Signals",
+            "Gatsby", "Bunny Chow", "Koeksister", "Melktert", "Braai", "Castle Lager",
+            "Potjiekos", "Biltong", "Droewors", "Chakalaka", "Pap", "Boerewors",
+            "Mielie Meal", "Ultramel", "Steri Stumpie", "Oros", "Mazoe", "Sparletta Creme Soda",
+            "K-TV", "YOTV", "Takalani Sesame", "Noot vir Noot", "7de Laan", "Carte Blanche",
+            "Generations", "Isidingo", "Derek Watts", "Trevor Noah", "Leanne Manas",
+            "Black Coffee", "Amapiano", "Kabza De Small", "Makhadzi", "Sho Madjozi",
+            "Brenda Fassie", "Mandoza", "Nkalakatha", "Sister Bethina", "Jerusalema",
+            "Master KG", "Waka Waka", "Vuvuzela", "Soccer City", "Kaizer Chiefs",
+            "Orlando Pirates", "Mamelodi Sundowns", "Bafana Bafana", "Banyana Banyana", "Proteas",
+            "AB de Villiers", "Dale Steyn", "Caster Semenya", "Wayde van Niekerk", "Chad le Clos",
+            "Tatjana Schoenmaker", "Dricus du Plessis", "Elon Musk", "Charlize Theron", "Nomzamo Mbatha",
+            "District 9", "Tsotsi", "Leon Schuster", "Mr Bones", "Mama Jack", "Spud",
+            "Spur Birthday Song", "Nando's", "Steers", "Wimpy", "Debonairs",
+            "Chicken Licken", "Roman's Pizza", "Garage Pie", "Vetkoek", "Amagwinya",
+            "Kota", "Smiley", "Walkie Talkies", "Mopane Worms", "Aromat",
+            "Mrs Balls Chutney", "All Gold Tomato Sauce", "Klipdrift", "Castle Lite", "Black Label",
+            "Savanna Dry", "Windhoek Lager", "Brandy & Coke", "Springbokgie", "Jagerbomb",
+            "Uber", "Bolt", "Taxi Gaartjie", "Car Guard", "R2 Coin",
+            "Sassa Grant", "R350", "Home Affairs", "Queue", "System Offline",
+            "Potholes", "Traffic Circle", "Robot", "Just Now", "Now Now",
+            "Lekker", "Eish", "Yoh", "Haikona", "Aikona",
+            "Wena", "Chana", "Bru", "Boet", "China", "Gaffi",
+            "Sisi", "Bhuti", "Malume", "Gogo", "Tannies",
+            "Oom", "Veldskoen", "Khaki", "Two Tone Shirt", "Shorts in Winter",
+            "Plakkies", "Flip Flops", "Jol", "Dop", "Babalas",
+            "Geest", "Gees", "Hulle weet nie wat ons weet nie", "Phala Phala", "Nkandla",
+            "Gupta", "State Capture", "Zondo Commission", "Lockdown", "Family Meeting",
+            "Fellow South Africans", "Curfew", "Sanitizer", "Mask", "Vaccine",
+            "Matric Dance", "After Tears", "Wedding", "Lobola", "Umbondo",
+            "21st Key", "Braaibroodjie", "Potato Salad", "Seven Colours", "Sunday Lunch",
+            "Tupperware", "Ice Cream Tub (Stew)", "Danko", "Groove", "Sipho",
+            "Van der Merwe", "Gatiep", "Liewe Heksie", "Brakpan", "Benoni",
+            "Fourways", "Sandton", "Soweto", "Alex", "Khayelitsha", "Diepsloot",
+            "Clifton 4th", "Camps Bay", "Durban Beachfront", "uShaka Marine World", "Sun City",
+            "Valley of Waves", "Gold Reef City", "Canal Walk", "Mall of Africa", "Gateway",
+            "V&A Waterfront", "Robben Island", "Nelson Mandela", "Desmond Tutu", "Jacob Zuma",
+            "Julius Malema", "John Steenhuisen", "Helen Zille", "Fikile Mbalula", "Bheki Cele",
+            "Thuli Madonsela", "Chief Justice Zondo", "Patrice Motsepe", "Johann Rupert", "Oppenheimer",
+            "Sasol", "Telkom", "Vodacom", "MTN", "Cell C", "Rain 5G",
+            "Capitec", "FNB", "Standard Bank", "Absa", "Nedbank",
+            "Discovery Vitality", "eBucks", "Smart Shopper", "Xtra Savings", "Makro",
+            "Game", "Clicks", "Dis-Chem", "Pep", "Ackermans",
+            "Mr Price", "Woolworths", "Checkers", "Pick n Pay", "Spar",
+            "Tops", "Liquor City", "Bottle Store", "Shebeen", "Tavern",
+            "Shisa Nyama", "Car Wash", "Spinning (Cars)", "BMW Gusheshe", "Toyota Quantum",
+            "Toyota Hilux", "Ford Ranger", "Volkswagen Polo", "Citi Golf", "Caravel",
+            "Putco Bus", "MyCiTi", "Gautrain", "Metrorail", "Shosholoza Meyl",
+            "SAA", "FlySafair", "Kulula", "Lift", "Mango",
+            "Jan Jan Jan", "Biggy", "Early B", "Jack Parow", "Die Antwoord",
+            "Fokofpolisiekar", "Francois van Coke", "Karen Zoid", "Steve Hofmeyr", "Kurt Darren",
+            "Nicholis Louw", "Juanita du Plessis", "Bobby van Jaarsveld", "Karlien van Jaarsveld", "Bok van Blerk",
+            "De La Rey", "Kaptein", "Sokkie", "Langarm", "Volkspel",
+            "Gumboot Dance", "Pantsula", "Kwela", "Marabi", "Mbaqanga",
+            "Isicathamiya", "Ladysmith Black Mambazo", "Johnny Clegg", "Hugh Masekela", "Miriam Makeba",
+            "Cassper Nyovest", "AKA", "Nasty C", "K.O", "Emtee",
+            "Kwesta", "Zola 7", "TKZee", "HHP", "ProKid", "Gqom"
+        ];
 
-        // --- STATE & DOM ---
-        let isPlaying = false;
-        let isReviewing = false;
+        const INTERNATIONAL_MOVIES_TV = [
+            "Harry Potter", "Hogwarts", "Voldemort", "Dumbledore", "Game of Thrones",
+            "Jon Snow", "Daenerys Targaryen", "Breaking Bad", "Walter White", "Friends",
+            "The Office", "Michael Scott", "Stranger Things", "Eleven", "Squid Game",
+            "The Crown", "Bridgerton", "Netflix", "Disney+", "Marvel",
+            "Avengers", "Iron Man", "Thanos", "Spider-Man", "Batman",
+            "Joker", "Superman", "Wonder Woman", "Black Panther", "Wakanda",
+            "Avatar", "Titanic", "Jack & Rose", "The Lion King", "Simba",
+            "Shrek", "Donkey", "Toy Story", "Buzz Lightyear", "Frozen",
+            "Elsa", "Let It Go", "Star Wars", "Darth Vader", "Yoda",
+            "Luke Skywalker", "The Mandalorian", "Baby Yoda", "Jurassic Park", "T-Rex",
+            "James Bond", "007", "Mission Impossible", "Tom Cruise", "Fast & Furious",
+            "Vin Diesel", "The Matrix", "Keanu Reeves", "Inception", "Leonardo DiCaprio",
+            "Oppenheimer", "Barbie", "Margot Robbie", "Ryan Gosling", "Mean Girls",
+            "Legally Blonde", "The Hunger Games", "Katniss Everdeen", "Twilight", "Edward Cullen",
+            "Fifty Shades of Grey", "Grey's Anatomy", "Suits", "Meghan Markle", "Keeping Up With The Kardashians"
+        ];
+
+        const INTERNATIONAL_CELEBS = [
+            "Beyoncé", "Jay-Z", "Rihanna", "Kanye West", "Kim Kardashian",
+            "Taylor Swift", "Eras Tour", "Justin Bieber", "Selena Gomez", "Ariana Grande",
+            "Drake", "Eminem", "Snoop Dogg", "Tupac", "Michael Jackson",
+            "Elvis Presley", "The Beatles", "Queen", "Freddie Mercury", "Adele",
+            "Ed Sheeran", "Harry Styles", "Dua Lipa", "Billie Eilish", "Cardi B",
+            "Nicki Minaj", "The Rock", "Kevin Hart", "Will Smith", "Jada Pinkett Smith",
+            "Brad Pitt", "Angelina Jolie", "Jennifer Aniston", "Johnny Depp", "Amber Heard",
+            "Zendaya", "Tom Holland", "Kylie Jenner", "Kendall Jenner", "Kris Jenner",
+            "Oprah Winfrey", "Ellen DeGeneres", "Jimmy Fallon", "James Corden", "Gordon Ramsay",
+            "David Beckham", "Victoria Beckham", "Cristiano Ronaldo", "Lionel Messi", "Neymar",
+            "LeBron James", "Michael Jordan", "Kobe Bryant", "Serena Williams", "Tiger Woods",
+            "Lewis Hamilton", "Max Verstappen", "F1", "Usain Bolt", "Simone Biles"
+        ];
+
+        const WORLD_GENERAL = [
+            "Eiffel Tower", "Paris", "Statue of Liberty", "New York", "Big Ben",
+            "London", "Colosseum", "Rome", "Pyramids of Giza", "Egypt",
+            "Taj Mahal", "India", "Great Wall of China", "Sydney Opera House", "Australia",
+            "Burj Khalifa", "Dubai", "Mount Everest", "Amazon Rainforest", "Sahara Desert",
+            "Niagara Falls", "Grand Canyon", "Antarctica", "North Pole", "Bermuda Triangle",
+            "Ukraine", "Russia", "Putin", "Donald Trump", "Joe Biden",
+            "Barack Obama", "Michelle Obama", "Queen Elizabeth II", "King Charles", "Prince Harry",
+            "Pope Francis", "Vatican City", "United Nations", "WHO", "NASA",
+            "SpaceX", "Mars", "Moon Landing", "Bitcoin", "Cryptocurrency",
+            "NFT", "AI", "ChatGPT", "Artificial Intelligence", "Robot",
+            "iPhone", "Apple", "Steve Jobs", "Samsung", "Android",
+            "Facebook", "Mark Zuckerberg", "Meta", "Instagram", "TikTok",
+            "Twitter", "X", "Elon Musk", "Amazon", "Jeff Bezos",
+            "Google", "YouTube", "Netflix", "Spotify", "Uber",
+            "Airbnb", "Tesla", "Electric Car", "Climate Change", "Global Warming",
+            "Recycling", "Plastic Straws", "Vegan", "Gluten Free", "Yoga",
+            "CrossFit", "Marathon", "Olympics", "World Cup", "Super Bowl",
+            "Coca-Cola", "Pepsi", "McDonald's", "Big Mac", "Burger King",
+            "KFC", "Starbucks", "Nike", "Just Do It", "Adidas",
+            "Puma", "Gucci", "Louis Vuitton", "Prada", "Rolex",
+            "Ferrari", "Lamborghini", "Porsche", "BMW", "Mercedes Benz",
+            "IKEA", "Lego", "Barbie Doll", "PlayStation", "Xbox",
+            "Fortnite", "Minecraft", "Call of Duty", "GTA", "Super Mario"
+        ];
+
+        // Combine all lists
+        const MASTER_LIST = [
+            ...SA_LIST, 
+            ...INTERNATIONAL_MOVIES_TV, 
+            ...INTERNATIONAL_CELEBS, 
+            ...WORLD_GENERAL
+        ];
+
+        // --- STATE & LOGIC ---
+        let deck = [];
+        let currentScores = [0, 0];
+        let timerInterval;
         let timeLeft = 30;
-        let timerInterval = null;
-        
-        const startView = document.getElementById('start-view');
-        const gameView = document.getElementById('game-view');
-        const actionBtn = document.getElementById('action-btn');
+        let isPlaying = false;
+
+        // --- DOM ELEMENTS ---
         const timerDisplay = document.getElementById('timer-display');
-        const timerLabel = document.getElementById('timer-label');
-        const timerBar = document.getElementById('timer-bar');
-        const cardContainer = document.getElementById('card-container');
-        const cardFooter = document.getElementById('card-footer-text');
-        const wordItems = document.querySelectorAll('.word-item');
-        const soundTick = document.getElementById('sound-tick');
-        const soundEnd = document.getElementById('sound-end');
-        const historyList = document.getElementById('history-list');
+        const wordContainer = document.getElementById('word-container');
+        const startOverlay = document.getElementById('start-overlay');
+        const timesUpOverlay = document.getElementById('times-up-overlay');
+        const gameOverOverlay = document.getElementById('game-over-overlay');
+        const deckCountDisplay = document.getElementById('deck-count');
+        const score0 = document.getElementById('score-0');
+        const score1 = document.getElementById('score-1');
 
-        // --- HISTORY FUNCTIONS ---
-        
-        function getHistory() {
-            return JSON.parse(localStorage.getItem('30s_history')) || [];
+        // --- FUNCTIONS ---
+
+        function initDeck() {
+            // Create a copy of the master list and shuffle it
+            deck = [...MASTER_LIST];
+            shuffleArray(deck);
+            updateDeckCount();
         }
 
-        function saveToHistory(words) {
-            const history = getHistory();
-            const newEntry = {
-                id: Date.now(),
-                timestamp: new Date().toISOString(),
-                words: words
-            };
-            // Add to top, limit to last 50
-            history.unshift(newEntry);
-            if(history.length > 50) history.pop();
-            
-            localStorage.setItem('30s_history', JSON.stringify(history));
-            renderHistory();
-        }
-
-        function clearHistory() {
-            if(confirm("Clear all game history?")) {
-                localStorage.removeItem('30s_history');
-                renderHistory();
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
             }
         }
 
-        function renderHistory() {
-            const history = getHistory();
-            historyList.innerHTML = '';
+        function updateDeckCount() {
+            const cardsRemaining = Math.floor(deck.length / 5);
+            deckCountDisplay.textContent = `${cardsRemaining} CARDS REMAINING`;
+        }
 
-            if (history.length === 0) {
-                historyList.innerHTML = '<div class="text-center text-gray-500 mt-10">No games played yet.</div>';
+        function generateCard() {
+            // Check if we have enough words for a full card
+            if (deck.length < 5) {
+                gameOverOverlay.classList.remove('hidden');
+                wordContainer.classList.add('blur-content');
                 return;
             }
 
-            history.forEach((game, index) => {
-                const date = new Date(game.timestamp);
-                const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const dateString = date.toLocaleDateString();
+            // Draw 5 words from the END of the array (pop is faster)
+            const cardWords = [];
+            for (let i = 0; i < 5; i++) {
+                cardWords.push(deck.pop());
+            }
 
-                const el = document.createElement('div');
-                el.className = 'bg-gray-800 rounded-xl p-4 border border-gray-700';
-                
-                let wordsHtml = '';
-                game.words.forEach(w => {
-                    wordsHtml += `<span class="inline-block bg-gray-900 rounded px-2 py-1 text-xs m-1 text-gray-300">${w}</span>`;
-                });
-
-                el.innerHTML = `
-                    <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
-                        <span class="text-xs font-bold text-purple-400">Round ${history.length - index}</span>
-                        <span class="text-xs text-gray-500">${dateString} ${timeString}</span>
-                    </div>
-                    <div class="flex flex-wrap -m-1">
-                        ${wordsHtml}
-                    </div>
-                `;
-                historyList.appendChild(el);
+            // Render
+            wordContainer.innerHTML = '';
+            cardWords.forEach(word => {
+                const div = document.createElement('div');
+                div.className = "w-full text-center border-b-2 border-gray-100 pb-2 last:border-0";
+                div.innerHTML = `<span class="text-xl font-bold text-gray-800 block leading-tight">${word}</span>`;
+                wordContainer.appendChild(div);
             });
-        }
 
-        // --- CORE FUNCTIONS ---
+            updateDeckCount();
+        }
 
         function startGame() {
             isPlaying = true;
-            isReviewing = false;
             timeLeft = 30;
+            updateTimerDisplay();
             
-            startView.classList.add('hidden');
-            gameView.classList.remove('hidden');
-            gameView.classList.add('flex');
+            // UI Updates
+            startOverlay.classList.add('hidden');
+            wordContainer.classList.remove('blur-content');
             
-            cardContainer.classList.add('active');
-            cardContainer.classList.remove('expired');
-            cardFooter.textContent = "Dont say the word!";
-            cardFooter.parentElement.classList.remove('opacity-0');
-
-            actionBtn.textContent = "Next Card / Skip";
-            actionBtn.classList.replace('bg-purple-600', 'bg-gray-700');
-            actionBtn.classList.remove('bg-blue-600');
-
-            timerDisplay.textContent = "30";
-            timerLabel.textContent = "seconds";
-            timerBar.style.width = '100%';
-            timerBar.className = 'timer-bar bg-green-500';
-
-            generateDiverseCard();
-
+            // Start Timer
             clearInterval(timerInterval);
-            timerInterval = setInterval(updateTimer, 1000);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
         }
 
-        function endRoundLogic() {
+        function updateTimerDisplay() {
+            timerDisplay.textContent = timeLeft;
+            if (timeLeft > 20) timerDisplay.className = "text-8xl marker-font text-green-400 mb-6 drop-shadow-lg";
+            else if (timeLeft > 10) timerDisplay.className = "text-8xl marker-font text-yellow-400 mb-6 drop-shadow-lg";
+            else timerDisplay.className = "text-8xl marker-font text-red-500 animate-pulse mb-6 drop-shadow-lg";
+        }
+
+        function endGame() {
             clearInterval(timerInterval);
             isPlaying = false;
-            isReviewing = true;
+            timesUpOverlay.classList.remove('hidden');
+            if (navigator.vibrate) navigator.vibrate([200, 100, 500]);
+        }
+
+        function skipCard() {
+            clearInterval(timerInterval);
+            isPlaying = false;
+            timeLeft = 30;
+            updateTimerDisplay();
             
-            if (document.getElementById('sound-toggle').checked) {
-                soundEnd.play().catch(e => {});
+            // Check if game over logic needs to run
+            if (deck.length < 5) {
+                generateCard(); // This will trigger the game over overlay
+                return;
             }
-            if (navigator.vibrate) navigator.vibrate([200, 100, 400]);
 
-            timerDisplay.textContent = "TIME'S UP";
-            timerLabel.textContent = "";
-            timerBar.style.width = '100%';
-            timerBar.className = 'timer-bar danger';
+            generateCard();
             
-            cardContainer.classList.remove('active');
-            cardContainer.classList.add('expired');
-            cardFooter.textContent = "Count your score";
-
-            actionBtn.textContent = "Finish Round";
-            actionBtn.classList.replace('bg-gray-700', 'bg-blue-600');
+            // UI Reset
+            startOverlay.classList.remove('hidden');
+            timesUpOverlay.classList.add('hidden');
+            wordContainer.classList.add('blur-content');
         }
 
-        function resetToHome() {
-            // Save current words to history before resetting
-            const currentWords = Array.from(wordItems).map(el => el.textContent);
-            saveToHistory(currentWords);
-
-            isReviewing = false;
-            
-            startView.classList.remove('hidden');
-            gameView.classList.add('hidden');
-            gameView.classList.remove('flex');
-            cardContainer.classList.remove('expired');
-            
-            actionBtn.textContent = "Start Round";
-            actionBtn.classList.replace('bg-blue-600', 'bg-purple-600');
-            
-            timerDisplay.textContent = "30";
-            timerLabel.textContent = "seconds";
-            timerBar.style.width = '100%';
-            timerBar.className = 'timer-bar bg-green-500';
+        function resetDeck() {
+            gameOverOverlay.classList.add('hidden');
+            initDeck();
+            skipCard();
         }
 
-        function updateTimer() {
-            timeLeft--;
-            timerDisplay.textContent = timeLeft;
-            
-            const percentage = (timeLeft / 30) * 100;
-            timerBar.style.width = `${percentage}%`;
-
-            if (timeLeft <= 10) {
-                timerBar.className = 'timer-bar warning';
-                if (document.getElementById('sound-toggle').checked && timeLeft > 0) {
-                   soundTick.currentTime = 0;
-                   soundTick.play().catch(e => {});
-                }
-            }
-            if (timeLeft <= 5) {
-                timerBar.className = 'timer-bar danger';
-            }
-
-            if (timeLeft <= 0) {
-                endRoundLogic();
-            }
+        function updateScore(teamIndex, change) {
+            currentScores[teamIndex] = Math.max(0, currentScores[teamIndex] + change);
+            if(teamIndex === 0) score0.textContent = currentScores[0];
+            else score1.textContent = currentScores[1];
         }
 
-        function generateDiverseCard() {
-            const keys = Object.keys(categories);
-            let selectedWords = keys.map(key => {
-                const list = categories[key];
-                return list[Math.floor(Math.random() * list.length)];
-            });
-
-            for (let i = selectedWords.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [selectedWords[i], selectedWords[j]] = [selectedWords[j], selectedWords[i]];
-            }
-
-            selectedWords.forEach((word, index) => {
-                wordItems[index].textContent = word;
-            });
-        }
-
-        // --- EVENT LISTENERS ---
-
-        actionBtn.addEventListener('click', () => {
-            if (!isPlaying && !isReviewing) {
-                startGame();
-            } else if (isPlaying) {
-                if(confirm("Skip this card? (You lose 5s)")) {
-                   generateDiverseCard();
-                   timeLeft = Math.max(0, timeLeft - 5);
-                   updateTimer(); 
-                }
-            } else if (isReviewing) {
-                resetToHome();
-            }
-        });
-
-        function toggleSettings() {
-            document.getElementById('settings-modal').classList.toggle('hidden');
-        }
-
-        function toggleHistory() {
-            const modal = document.getElementById('history-modal');
-            modal.classList.toggle('hidden');
-            if(!modal.classList.contains('hidden')) {
-                renderHistory();
-            }
-        }
-
-        // --- PWA INSTALLATION ---
-        let deferredPrompt;
-        const installBtn = document.getElementById('install-btn');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            installBtn.classList.remove('hidden');
-        });
-
-        installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    installBtn.classList.add('hidden');
-                }
-                deferredPrompt = null;
-            }
-        });
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('SW Registered'))
-                    .catch(err => console.log('SW Error', err));
-            });
-        }
-
-        // Init History on load
-        renderHistory();
+        // --- INIT ---
+        initDeck();
+        generateCard();
 
     </script>
 </body>
